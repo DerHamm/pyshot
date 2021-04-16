@@ -14,10 +14,10 @@ LOGGER = get_logger()
 IMAGE_CONFIG = {'user_agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.47 Safari/537.36'}
 
 
-with Path('c:/users/hammi/desktop/prox.txt').open('r') as f:
-    CONTENT = f.read()
-    f.close()
-CONTENT = CONTENT.split('\n')
+#with Path('prox.txt').open('r') as f:
+    #CONTENT = f.read()
+    #f.close()
+#CONTENT = CONTENT.split('\n')
 
 
 class ImageDownloader(object):
@@ -303,8 +303,8 @@ class LightShotProxyHandler(object):
         self.count = 0
         self.original_list = None
 
-    def get_local_proxy_list(self):
-        return CONTENT
+    #def get_local_proxy_list(self):
+    #    return CONTENT
 
 
     def get_proxy_list(self, timeout=10000, country='all', ssl='yes', anonymity='elite'):
@@ -326,13 +326,13 @@ class LightShotProxyHandler(object):
 
     def proxy_generator(self):
         count = 0
-        proxy_list = self.get_local_proxy_list()
+        proxy_list = self.get_proxy_list()
         while True:
             try:
                 yield proxy_list[count]
                 count += 1
             except IndexError:
-                proxy_list = self.get_local_proxy_list()
+                proxy_list = self.get_proxy_list()
                 count = 0
                 continue
 
