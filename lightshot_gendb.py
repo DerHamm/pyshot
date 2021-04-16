@@ -1,16 +1,11 @@
 from util_functions import safe_open
 import pandas
-
 import time
-
-
 from pathlib import Path
-
-from queue import Queue
 from threading import Thread
-
 import lightshot_logger
 import os
+
 LOGGER = lightshot_logger.get_logger()
 
 # Generate the first possible ~ 2 000 000 000 url keys in ~100 MB CSVs for porting them one after one into the database
@@ -100,42 +95,23 @@ def generate_csv(path, loop_limit):
     return can_quit
 
 
-class CSVWorker(Thread):
+def run_main():
 
-    def __init__(self, queue):
-        Thread.__init__(self)
-        self.queue = queue
+    data_path = Path('data')
+    if not data_path.exists():
+        data_path.mkdir()
+    MAX_LIMIT = 2187500000
+    # +[1] so that max(list) at least returns 1
+    value_list = [int(os.path.splitext(os.path.split(csv_path)[1])[0][-3:]) for csv_path in get_csv_path_list()] + [1]
+    index = max(value_list)
+    limit = index * 12500000
+    while limit < MAX_LIMIT:
+        generate_csv('data/links{}.txt'.format(str(index).rjust(3, '0')), limit)
+        limit += 12500000
+        index += 1
 
-    def run(self):
-        while True:
-            path, limit = self.queue.get()
-            generate_csv(path, limit)
-            self.queue.task_done()
+    quit(0)
 
 
 if __name__ == '__main__':
-        MAX_LIMIT = 2187500000
-        # +[1] so that max(list) at least returns 1
-        value_list = [int(os.path.splitext(os.path.split(csv_path)[1])[0][-3:]) for csv_path in get_csv_path_list()] + [1]
-        index = max(value_list)
-        limit = index * 12500000
-
-        if not Path('data').exists():
-            Path('data').mkdir()
-
-        #queue = Queue()
-
-        #for x in range(8):
-        #    worker = CSVWorker(queue)
-            # Setting daemon to True will let the main thread exit even though the workers are blocking
-        #    worker.daemon = True
-        #    worker.start()
-
-        while limit < MAX_LIMIT:
-            #queue.put(('data/links{}.txt'.format(str(index).rjust(3, '0')), limit))
-            generate_csv('data/links{}.txt'.format(str(index).rjust(3, '0')), limit)
-            limit += 12500000
-            index += 1
-
-
-        quit(0)
+    run_main()

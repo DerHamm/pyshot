@@ -14,6 +14,12 @@ LOGGER = get_logger()
 IMAGE_CONFIG = {'user_agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.47 Safari/537.36'}
 
 
+with Path('c:/users/hammi/desktop/prox.txt').open('r') as f:
+    CONTENT = f.read()
+    f.close()
+CONTENT = CONTENT.split('\n')
+
+
 class ImageDownloader(object):
     user_agent = IMAGE_CONFIG['user_agent']
 
@@ -84,7 +90,7 @@ class ImageDownloader(object):
         if self.requests_sent >= self.max_requests_per_proxy:
             self.max_requests_per_proxy += self._max_requests_increment + (
                     self.requests_sent - self.max_requests_per_proxy)
-            proxy_handler.install_next_proxy()
+            self.proxy_handler.install_next_proxy()
             self.log_memory_usage()
 
     def run(self):
@@ -184,7 +190,6 @@ class ImageDownloader(object):
         new_urls = [image_tag['src'] for image_tag in image_tags if
                     self.url not in image_tag['src'] and 'footer' not in image_tag['src'] and not str(
                         image_tag['src']).startswith('//')]
-
         self.parse_new_urls(new_urls)
 
         if self.is_image_queue_full():
@@ -290,12 +295,17 @@ def get_downloaded_list():
     return path_list
 
 
+
 class LightShotProxyHandler(object):
 
     def __init__(self):
         self.generator = self.proxy_generator()
         self.count = 0
         self.original_list = None
+
+    def get_local_proxy_list(self):
+        return CONTENT
+
 
     def get_proxy_list(self, timeout=10000, country='all', ssl='yes', anonymity='elite'):
         URL = "https://api.proxyscrape.com/?request=getproxies&proxytype=http&timeout={}&country={}&ssl={}&anonymity={}".format(
@@ -311,17 +321,18 @@ class LightShotProxyHandler(object):
                 len(result), country=country, ssl=ssl, anonymity=anonymity))
         self.count = len(result)
         self.original_list = result
+
         return result
 
     def proxy_generator(self):
         count = 0
-        proxy_list = self.get_proxy_list()
+        proxy_list = self.get_local_proxy_list()
         while True:
             try:
                 yield proxy_list[count]
                 count += 1
             except IndexError:
-                proxy_list = self.get_proxy_list()
+                proxy_list = self.get_local_proxy_list()
                 count = 0
                 continue
 
@@ -339,39 +350,24 @@ class LightShotProxyHandler(object):
         return opener
 
 
-if __name__ == '__main__':
-    counter = 0
-
+def run_main(link_file_number):
     proxy_handler = LightShotProxyHandler()
     proxy_gen = proxy_handler.proxy_generator()
     proxy_handler.install_next_proxy()
     if not Path('data/img').exists():
         Path('data/img').mkdir()
 
-    with safe_open("data/links022.txt", 'r') as f:
+    with safe_open("data/links{}.txt".format(str(link_file_number).zfill(3)), 'r') as f:
         codes = f.read().split('\n')
         f.close()
 
     queue = QueueList([code for code in codes if code != ''], started_at="052")
-
     then = time.time()
-
-    #for i in range(proxy_handler.count):
-    #    request = urllib.request.Request('https://websniffer.cc/my',
-    #                                     headers={'X-Forwarded-For': '199.232.53.140', 'X-Forwarded-Port': '420'})
-
-    #    opener = proxy_handler.return_opener()
-    #    res = opener.open(request)
-    #    soup = BeautifulSoup(res.read(), 'html.parser')
-    #    for tag in soup.find_all('a', href=True):
-    #        if 'ip' in tag['href']:
-    #            print(tag.text)
-    #            print(tag.text in proxy_handler.original_list)
-
-    #quit(0)
     image = ImageDownloader(queue, proxy_handler_instance=proxy_handler, max_requests_per_proxy=20, stop_at=10000)
     image.run()
-
     LOGGER.debug('Finished job. Time taken: {}'.format(time.time() - then))
 
     quit(0)
+
+if __name__ == '__main__':
+    run_main(22)
